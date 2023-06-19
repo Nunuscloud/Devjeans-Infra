@@ -1,0 +1,8 @@
+nodeSelector: 
+  lifecycle=spot
+webhookURL: "https://hooks.slack.com/services/YOUR_WEBHOOK_URL"
+enableSpotInterruptionDraining: true # default = true 
+enableRebalanceMonitoring: true
+
+rbac:
+  pspEnabled: false 
