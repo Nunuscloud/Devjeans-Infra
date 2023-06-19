@@ -1,0 +1,28 @@
+serviceMonitor:
+  enabled: true
+
+persistence:
+  enabled: true
+  storageClassName: gp2 # customize
+  size: 5Gi # customize
+  
+# tolerations:
+# - key: ingest
+#   operator: Equal
+#   value: "true" 
+#   effect: NoSchedule
+
+nodeSelector:
+  kops.k8s.io/instancegroup: ingest # customize
+
+rbac:
+  create: true 
+  pspEnabled: false
+  
+config:
+  table_manager:
+    retention_deletes_enabled: true
+    retention_period: 72h
+
+
+
