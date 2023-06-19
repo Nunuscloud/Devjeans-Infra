@@ -1,0 +1,132 @@
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: true
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubeApiserverHistogram: true
+    kubeApiserverSlos: true
+    kubeControllerManager: false
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeScheduler: false 
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+
+kubeControllerManager:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+
+alertmanager:
+  # tolerations:
+  #   - key: "ingest"
+  #     operator: "Equal"
+  #     value: "true"
+  #     effect: "NoSchedule"
+  nodeSelector:
+    kops.k8s.io/instancegroup: ingest # customize
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+    hosts: ['monitoring.k8s.com'] # customize
+    paths: ['/alertmanager(/|$)(.*)']
+    pathType: Prefix
+    tls: []
+
+  config:
+    global:
+      resolve_timeout: 5m
+      slack_api_url: 'https://hooks.slack.com/services/' # Your Slack App URL
+
+    route:
+      group_by: ['job']  
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'slack-notifications'
+      routes:
+      - receiver: 'slack-notifications'
+        matchers:
+          - alertname =~ "InfoInhibitor|Watchdog"
+    receivers:
+    - name: 'slack-notifications'
+      slack_configs:
+      - channel: '#infra'
+        send_resolved: true
+        title: '[{{.Status | toUpper}}] {{ .CommonLabels.alertname }}'
+        text: |
+          *Description:* {{ .CommonAnnotations.description }}
+
+
+  alertmanagerSpec: 
+    externalUrl: https://monitoring.k8s.com/alertmanager # customize
+    routePrefix: "/" # does not need alertmanage suffix
+
+grafana:
+  # tolerations:
+  #   - key: "ingest"
+  #     operator: "Equal"
+  #     value: "true"
+  #     effect: "NoSchedule"
+  nodeSelector:
+    kops.k8s.io/instancegroup: ingest # customize
+  env:
+    GF_SERVER_ROOT_URL: https://monitoring.k8s.com/grafana # customize
+    GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
+  # username is 'admin'
+  adminPassword: # This is the password you will use to log-in to Grapana.
+  defaultDashboardsTimezone: Asia/Seoul
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+    hosts: ['monitoring.k8s.com'] # customize
+    path: "/grafana(/|$)(.*)"
+    pathType: Prefix
+    tls: []
+    
+
+prometheus:
+  # tolerations:
+  # - key: ingest 
+  #   operator: Equal
+  #   value: "true"
+  #   effect: NoSchedule
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: nginx
+    hosts: ['monitoring.k8s.com'] # customize
+    paths: ['/prometheus'] # does not need regex capture like others
+    tls: []
+
+  prometheusSpec:
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    retention: 5d
+    retentionSize: "10GiB"
+    externalUrl: "https://monitoring.k8s.com/prometheus" # customize
+    routePrefix: /prometheus
+    scrapeInterval: 40s
+    scrapeTimeout: 30s
