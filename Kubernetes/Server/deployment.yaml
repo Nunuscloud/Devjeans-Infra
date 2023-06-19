@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devjeans-server
+  namespace: devjeans
+  labels:
+    app: devjeans
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devjeans
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: devjeans
+        tier: backend
+      annotations:
+        kops.k8s.io/instancegroup: nodes
+    spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: nodes
+      containers:
+      - name: devjeans-server
+        image: [Devjeans Server Image]
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "1024Mi" 
+            cpu: "500m" 
+          limits:
+            memory: "2048Mi"
+            cpu: "1000m"
+        envFrom:
+        - configMapRef:
+            name: [ConfigMap Name]
+        - secretRef:
+            name: [Secret Name]
+        volumeMounts:
+        - name: devjeans-server
+          mountPath: "/devjeans/server/logs" 
+      volumes:
+      - name: devjeans-server
+        emptyDir: {} 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devjeans-server-service
+  namespace: devjeans
+  labels:
+    app: devjeans
+spec:
+  type: ClusterIP
+  selector:
+    app: devjeans
+    tier: backend
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
