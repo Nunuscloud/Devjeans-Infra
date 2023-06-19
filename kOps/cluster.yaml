@@ -1,0 +1,205 @@
+apiVersion: kops.k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  creationTimestamp: null
+  name: # cluster name
+spec:
+  api:
+    dns: {}
+  authorization:
+    rbac: {}
+  channel: stable
+  certManager:
+    enabled: true
+  cloudLabels:
+    Owner: patnmat
+  cloudProvider: aws
+  configBase: # s3 name
+  etcdClusters:
+  - cpuRequest: 200m
+    etcdMembers:
+    - encryptedVolume: true
+      instanceGroup: # master group name
+      name: c
+    memoryRequest: 100Mi
+    name: main
+  - cpuRequest: 100m
+    etcdMembers:
+    - encryptedVolume: true
+      instanceGroup: # master group name
+      name: c
+    memoryRequest: 100Mi
+    name: events
+  externalDns:
+    provider: external-dns
+  externalPolicies:
+    master:
+    - # manster iam arn
+    node:
+    - # master iam arn
+  iam:
+    allowContainerRegistry: true
+    legacy: false
+    useServiceAccountExternalPermissions: true
+  karpenter:
+    enabled: true
+  kubelet:
+    anonymousAuth: false
+  kubeProxy:
+    metricsBindAddress: # prometheus metrics bind address
+  kubernetesApiAccess:
+  - # access ip 
+  kubernetesVersion: 1.24.10
+  masterPublicName: # master api url 
+  metricsServer:
+    enabled: true
+  networkCIDR: 172.31.0.0/16
+  networkID: # vpc id 
+  networking:
+    amazonvpc: {}
+  nonMasqueradeCIDR: 100.64.0.0/10
+  serviceAccountIssuerDiscovery:
+    discoveryStore: # s3 discovery store name
+    enableAWSOIDCProvider: true
+  sshAccess:
+  - # access ip 
+  subnets:
+  - cidr: 172.31.32.0/20
+    id: # subnet id
+    name: ap-northeast-2c
+    type: Public
+    zone: ap-northeast-2c
+  topology:
+    dns:
+      type: Public
+    masters: public
+    nodes: public
+
+---
+
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  labels:
+    kops.k8s.io/cluster: # cluster name
+  name: # master group name
+spec:
+  additionalSecurityGroups:
+  - # master node security group id 
+  - # master node security group id
+  additionalUserData:
+  - content: |
+      sudo hostnamectl set-hostname "master"
+    name: userdata.sh
+    type: text/x-shellscript
+  image: 099720109477/ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20230502
+  instanceMetadata:
+    httpPutResponseHopLimit: 3
+    httpTokens: required
+  machineType: m5zn.large
+  maxSize: 1
+  minSize: 1
+  mixedInstancesPolicy:
+    instances:
+    - m5zn.large
+    - m5ad.large
+    - m5d.large
+    - m4.large
+    - m5.large
+    - m6i.large
+    onDemandAboveBase: 0
+    onDemandBase: 0
+    spotAllocationStrategy: price-capacity-optimized
+  nodeLabels:
+    kops.k8s.io/instancegroup: control-plane
+  role: Master
+  rootVolumeSize: 30
+  rootVolumeType: gp2
+  subnets:
+  - ap-northeast-2c
+
+---
+
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: null
+  labels:
+    kops.k8s.io/cluster: # cluster name
+  name: nodes
+spec:
+  additionalSecurityGroups:
+  - # worker node security group id
+  - # worker node security group id
+  additionalUserData:
+  - content: |
+      sudo hostnamectl set-hostname "worker"
+    name: userdata.sh
+    type: text/x-shellscript
+  image: 099720109477/ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20230502
+  instanceMetadata:
+    httpPutResponseHopLimit: 1
+    httpTokens: required
+  manager: Karpenter
+  machineType: t3a.medium
+  mixedInstancesPolicy:
+    instances:
+    - t3a.medium
+    - t3.medium
+    - t3a.large
+    - t3.large
+    - m5zn.large
+    - m5ad.large
+    - m5d.large
+    - m4.large
+    - m5.large
+    - m6i.large
+  nodeLabels:
+    kops.k8s.io/instancegroup: nodess
+  role: Node
+  rootVolumeSize: 30
+  rootVolumeType: gp2
+  subnets:
+  - ap-northeast-2c
+  
+ ---
+ 
+apiVersion: kops.k8s.io/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: null
+  labels:
+    kops.k8s.io/cluster: dev-hee.com
+  name: ingest
+spec:
+  additionalSecurityGroups:
+  - # ingest node security group id
+  - # ingest node security group id
+  additionalUserData:
+  - content: |
+      sudo hostnamectl set-hostname "ingest"
+    name: userdata.sh
+    type: text/x-shellscript
+  image: 099720109477/ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20230502
+  instanceMetadata:
+    httpPutResponseHopLimit: 1
+    httpTokens: required
+  machineType: t3.medium
+  maxSize: 1
+  minSize: 1
+  mixedInstancesPolicy:
+    instances:
+    - t3.medium
+    - t2.medium
+    onDemandAboveBase: 0
+    onDemandBase: 0
+    spotAllocationStrategy: price-capacity-optimized
+  nodeLabels:
+    kops.k8s.io/instancegroup: ingest
+  role: Node
+  rootVolumeSize: 30
+  rootVolumeType: gp2
+  subnets:
+  - ap-northeast-2c
+  taints:
+  - ingest=true:NoSchedule
