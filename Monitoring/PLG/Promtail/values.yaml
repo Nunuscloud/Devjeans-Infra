@@ -1,0 +1,7 @@
+serviceMonitor: # responsible for automatically discovering and scraping metrics from the Loki service
+  enabled: true
+  
+config:
+  serverPort: 3101
+  clients:
+    - url: http://loki-headless:3100/loki/api/v1/push  # http://{{ .Release.Name }}:3100/loki/api/v1/push
